@@ -1,0 +1,25 @@
+---
+# deploy.yml
+
+
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  vars_files:
+    - amiKeys.yml
+
+  roles:
+    - role: launch
+      name: "{{ group_name }}-oms"
+
+- hosts: "{{ group_name }}-oms"
+  become: True
+  become_user: root
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - amiKeys.yml
+  roles:
+    - mysql
+    - tomcat
+    - deploy_app

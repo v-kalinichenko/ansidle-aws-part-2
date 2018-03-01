@@ -1,0 +1,58 @@
+# roles/deploy_app/tasks/main.yml
+---
+# tasks for ansible-disable-selinux
+- name: Install libselinux as prerequisite for SELinux Ansible module
+  yum:
+    name: "{{item}}"
+    state: latest
+  with_items:
+    - libselinux-python
+    - libsemanage-python
+
+- name: Disable SELinux at next reboot
+  selinux:
+    state: disabled
+
+- name: Set SELinux in permissive mode until the machine is rebooted
+  command: setenforce 0
+  ignore_errors: true
+  changed_when: false
+
+- name: install EPEL
+  yum: name=epel-release state=present
+
+- name: aws sdk install
+  yum: name={{ item }} state=present
+  with_items:
+    - python-pip
+
+- name: install boto
+  pip:
+    name: boto3
+    state: present
+
+# our war file is 
+- name: Deploy war file
+  aws_s3:
+    aws_access_key: '{{ ami_access }}'
+    aws_secret_key: '{{ ami_secret }}' 
+    bucket: lv285oms
+    object: OMS.war 
+    dest: /usr/share/tomcat/webapps/OMS.war
+    mode: get 
+    overwrite: no
+  register: war_downloaded
+ 
+- name: Set correct permissions
+  file: 
+    path: /usr/share/tomcat/webapps/OMS.war
+    owner: tomcat
+    group: tomcat
+  when: war_downloaded.changed
+  register: war_deployed
+ 
+- name: Restart tomcat
+  service:
+    name: tomcat
+    state: restarted
+  when: war_deployed.changed

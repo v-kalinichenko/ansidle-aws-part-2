@@ -1,0 +1,35 @@
+---
+- name: install jdk8 tomcat
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - java-1.8.0-openjdk
+    - tomcat
+
+- name: start tomcat
+  service:
+      name: tomcat
+      state: started
+      enabled: true
+
+- name: install tomcat-webapps
+  yum:
+      name: tomcat-webapps
+      state: installed
+
+- name: install tomcat-admin-webapps
+  yum:
+      name: tomcat-admin-webapps
+      state: installed
+
+- name: configure tomcat
+  template:
+      src=templates/tomcat-users.xml.j2
+      dest=/etc/tomcat/tomcat-users.xml
+
+- name: restart tomcat
+  service:
+      name: tomcat
+      state: restarted
+
